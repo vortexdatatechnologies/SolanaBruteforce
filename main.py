@@ -1,8 +1,8 @@
 import random
 import time
-from solana.keypair import Keypair
+
 from solana.rpc.api import Client
-from solana.keypair import Keypair
+from solders.keypair import Keypair
 from mnemonic import Mnemonic
 client = Client("https://api.mainnet-beta.solana.com")
 
@@ -28,21 +28,29 @@ def get_random_words_string(list, number):
 def get_random_words(list, number):
     return random.sample(list, number)
 
-
 def start_gen_words():
     mnemo = Mnemonic("english")
+    
     for i in range(0, 1_000_000_000):
         seed = mnemo.to_seed(get_random_words_string(words, 12))
-        keypair = Keypair.from_secret_key(seed)
-        acc_info = client.get_balance(keypair.public_key)
-        if(acc_info["result"]["value"] > 0):
-            print(keypair.public_key, "balance",
-                  acc_info["result"]["value"], "key", keypair.seed, keypair)
+        try:
+            keypair = Keypair.from_bytes(seed)
+        except Exception as e:
+            print("Error creating keypair:", e)
+            continue
+        acc_info = client.get_balance(keypair.pubkey())
+
+        # The balance value should be contained within the 'result' dictionary
+        if acc_info.value > 0:
+            print(keypair.pubkey(), "balance", acc_info.value, "key", keypair.seed, keypair)
+            with open('{}.txt'.format(i), "w") as archivo:
+    # Escribir los datos en el archivo
+                archivo.write(str(keypair.pubkey())+"  -  "+str(keypair.seed))
             break
         else:
             # pass
-            print(i, "empty", keypair.public_key,
-                  "balance", acc_info["result"]["value"])
+            print(i, "empty", keypair.pubkey(), "balance", acc_info.value)
+            
         time.sleep(0.2)
 
     print("done")
